@@ -193,60 +193,89 @@ void Timer0() interrupt 1{
         EX0 = 1;
     }
     if(StartUpStatus){
-        switch(startUpCountx2){
-            case 0:
-                FAN1 = 1;
-                print("FAN 1 Started.\r\n");
-                break;
+        switch(startUpCountx3){
             case 1:
-                FAN2 = 1;
-                print("FAN 2 Started.\r\n");
+                if(FAN1 == 0){
+                    FAN1 = 1;
+                    print("FAN 1 Started.\r\n");
+                }
                 break;
             case 2:
-                FAN3 = 1;
-                print("FAN 3 Started.\r\n");
+                if(FAN2 == 0){
+                    FAN2 = 1;
+                    print("FAN 2 Started.\r\n");
+                }
                 break;
             case 3:
-                FAN4 = 1;
-                print("FAN 4 Started.\r\n");
+                if(FAN3 == 0){
+                    FAN3 = 1;
+                    print("FAN 3 Started.\r\n");
+                }
                 break;
             case 4:
-                FAN5 = 1;
-                print("FAN 5 Started.\r\n");
+                if(FAN4 == 0){
+                    FAN4 = 1;
+                    print("FAN 4 Started.\r\n");
+                }
                 break;
             case 5:
-                FAN6 = 1;
-                print("FAN 6 Started.\r\n");
+                if(FAN5 == 0){
+                    FAN5 = 1;
+                    print("FAN 5 Started.\r\n");
+                }
                 break;
             case 6:
-                FAN7 = 1;
-                print("FAN 7 Started.\r\n");
+                if(FAN6 == 0){
+                    FAN6 = 1;
+                    print("FAN 6 Started.\r\n");
+                }
                 break;
             case 7:
-                FAN8 = 1;
-                print("FAN 8 Started.\r\n");
+                if(FAN7 == 0){
+                    FAN7 = 1;
+                    print("FAN 7 Started.\r\n");
+                }
                 break;
             case 8:
-                FAN9 = 1;
-                print("FAN 9 Started.\r\n");
+                if(FAN8 == 0){
+                    FAN8 = 1;
+                    print("FAN 8 Started.\r\n");
+                }
                 break;
             case 9:
-                FAN10 = 1;
-                print("FAN 10 Started.\r\n");
+                if(FAN9 == 0){
+                    FAN9 = 1;
+                    print("FAN 9 Started.\r\n");
+                }
                 break;
             case 10:
-                FAN11 = 1;
-                print("FAN 11 Started.\r\n");
+                if(FAN10 == 0){
+                    FAN10 = 1;
+                    print("FAN 10 Started.\r\n");
+                }
                 break;
             case 11:
-                FAN12 = 1;
-                print("FAN 12 Started.\r\n");
+                if(FAN11 == 0){
+                    FAN11 = 1;
+                    print("FAN 11 Started.\r\n");
+                }
+                break;
+            case 12:
+                if(FAN12 == 0){
+                    FAN12 = 1;
+                    print("FAN 12 Started.\r\n");
+                }
                 StartUpStatus = 0;
                 ET0 = 0;
                 break;
         }
-        if(startUpCount == 255) startUpCountx2++;
-        if(startUpCountx2 == 255) startUpCountx3++;
+        if(startUpCount == 255){
+            startUpCountx2++;
+        }
+        if(startUpCountx2 == 128){
+            startUpCountx2 = 0;
+            startUpCountx3++;
+        }
         startUpCount++;
     }
 }
