@@ -71,8 +71,17 @@ void Timer0() interrupt 1{
 //--------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------
 
+void GetFanSpeed(){
+    P1 = 255;
+    sendDataCache[0] = 'f';
+    sendDataCache[1] = 'a';
+    sendDataCache[2] = 'n';
+    sendDataCache[3] = 0x20;
+    SendData();
+}
+
 void ExecData(){
-    if(getData[0] == 't' && getData[1] == 'e' && getData[2] == 's' && getData[3] == 't') SendData();
+    if(getData[0] == 'g' && getData[1] == 'e' && getData[2] == 't' && getData[3] == 'f' && getData[4] == 'a' && getData[5] == 'n' && getData[6] == 0) GetFanSpeed();
 }
 
 void StoreData(){
