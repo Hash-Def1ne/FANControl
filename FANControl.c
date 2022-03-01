@@ -16,11 +16,13 @@ sbit FAN10 = P2^5;
 sbit FAN11 = P2^6;
 sbit FAN12 = P2^7;
 
+sbit P35 = P3^5;
+
 sbit P32 = P3^2;
 sbit dataPin = P3^7;
 
 bit Reset,StartUpStatus = 1,ESStatus; //Startup
-unsigned char startUpCount,startUpCountx2,startUpCountx3;
+unsigned char startUpCount,startUpCountx2,startUpCountx3,startUpCountx4;
 unsigned char debugLevel,ESC = 0; //Config
 unsigned char FAN[12]; //FAN
 unsigned char input[16],inputCache[2],inputBit = 0,inputCacheCount = 0,currorBit = 0; //input
@@ -28,19 +30,17 @@ unsigned char getBit,getBitCount,getData[16],getDataCount; //GetData
 unsigned char sendDataCache[16],sendCount,sendBitCount,sendDataControl; //SendData
 unsigned char globalCount; //Counts
 
-
 void InitInterrupt(){
     PS = 1;
     EA = 1;
     EX0 = 1;
     IT0 = 1;
-    ET0 = 1;
 }
 
 void InitTimer(){
     TMOD = 0x22;
-    TH1 = 0xFF;
-    TL1 = 0xFF;
+    TH1 = 0xFD;
+    TL1 = 0xFD;
     TH0 = 0xFD;
     TL0 = 0xFD;
     TR1 = 1;
@@ -96,15 +96,8 @@ bit IsNum(unsigned char inChar){
 unsigned char CharToDec(unsigned char inChar){
     if(inChar >= 48 && inChar <= 57){
         return inChar - 48;
-    }
+    }else print("Input range error. (0-9)\r\n");
     return 0;
-}
-
-void SendData(){
-    int count = 5,sendCountLocal = 0;
-    for(;count < 16;count++,sendCountLocal++) sendDataCache[sendCountLocal] = input[count];
-    ET0 = 1;
-    sendDataControl = 1;
 }
 
 void PWM(){
@@ -135,6 +128,8 @@ void main(){
     Init();
     print("\r\n");
     print("Loading...\r\n");
+    if(P35 == 0) StartUpStatus = 0;
+    else ET0 = 1;
     while(StartUpStatus);
     StartUp();
     print("Finish.\r\n");
@@ -148,7 +143,7 @@ void main(){
 //--------------------------------------------------------------------------------------------------------------------------------
 
 void ExecData(){
-    if(getData[0] == 't' && getData[1] == 'e' && getData[2] == 's' && getData[3] == 't') P0 = 255;
+    if(getData[0] == 'f' && getData[1] == 'a' && getData[2] == 'n' && getData[3] == 0x20) print("FAN!\r\n");
 }
 
 void StoreData(){
@@ -193,7 +188,7 @@ void Timer0() interrupt 1{
         EX0 = 1;
     }
     if(StartUpStatus){
-        switch(startUpCountx3){
+        switch(startUpCountx4){
             case 1:
                 if(FAN1 == 0){
                     FAN1 = 1;
@@ -272,9 +267,13 @@ void Timer0() interrupt 1{
         if(startUpCount == 255){
             startUpCountx2++;
         }
-        if(startUpCountx2 == 128){
+        if(startUpCountx2 == 255){
             startUpCountx2 = 0;
             startUpCountx3++;
+        }
+        if(startUpCountx3 == 2){
+            startUpCountx3 = 0;
+            startUpCountx4++;
         }
         startUpCount++;
     }
@@ -283,6 +282,13 @@ void Timer0() interrupt 1{
 //--------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------------------------
+
+void SendData(){
+    int count = 5,sendCountLocal = 0;
+    for(;count < 16;count++,sendCountLocal++) sendDataCache[sendCountLocal] = input[count];
+    ET0 = 1;
+    sendDataControl = 1;
+}
 
 void Input(unsigned char inChar){
     input[currorBit] = inChar;
@@ -344,62 +350,61 @@ void Enter(){
             SendData();
             for(count = 5;count < inputBit;count++) SendSerialData(input[count]);
         }else if(input[0] == 'f' && input[1] == 'a' && input[2] == 'n'){ //fan
-            if(IsNum(input[4]) && input[5] == 0x20){
-                if(IsNum(input[8])){
-                    FAN[CharToDec(input[4])] = (CharToDec(input[6]) * 10 + CharToDec(input[7])) * 10 + CharToDec(input[8]);
-                    print("Set FAN ");
-                    SendSerialData(input[4]);
-                    print(" speed: ");
-                    SendSerialData(input[6]);
-                    SendSerialData(input[7]);
-                    SendSerialData(input[8]);
-                }
-                else if(IsNum(input[7])){
-                    FAN[CharToDec(input[4])] = CharToDec(input[6]) * 10 + CharToDec(input[7]);
-                    print("Set FAN ");
-                    SendSerialData(input[4]);
-                    print(" speed: ");
-                    SendSerialData(input[6]);
-                    SendSerialData(input[7]);
-                }
-                else{
-                    FAN[CharToDec(input[4])] = CharToDec(input[6]);
-                    print("Set FAN ");
-                    SendSerialData(input[4]);
-                    print(" speed: ");
-                    SendSerialData(input[6]);
-                }
-            }else if(IsNum(input[4]) && IsNum(input[5]) && input[6] == 0x20){
-                FAN[CharToDec(input[4])] = 128;
-                if(input[4] < '2' && input[5] < '2'){
-                    if(IsNum(input[9])){
-                        FAN[CharToDec(input[4]) * 10 + CharToDec(input[5])] = (CharToDec(input[7]) * 10 + CharToDec(input[8])) * 10 + CharToDec(input[9]);
-                        print("Set FAN ");
-                        SendSerialData(input[4]);
-                        SendSerialData(input[5]);
-                        print(" speed: ");
-                        SendSerialData(input[7]);
-                        SendSerialData(input[8]);
-                        SendSerialData(input[9]);
-                    }
-                    else if(IsNum(input[8])){
-                        FAN[CharToDec(input[4]) * 10 + CharToDec(input[5])] = CharToDec(input[7]) * 10 + CharToDec(input[8]);
-                        print("Set FAN ");
-                        SendSerialData(input[4]);
-                        SendSerialData(input[5]);
-                        print(" speed: ");
-                        SendSerialData(input[7]);
-                        SendSerialData(input[8]);
-                    }
-                    else{
-                        FAN[CharToDec(input[4]) * 10 + CharToDec(input[5])] = CharToDec(input[7]);
-                        print("Set FAN ");
-                        SendSerialData(input[4]);
-                        SendSerialData(input[5]);
-                        print(" speed: ");
-                        SendSerialData(input[7]);
-                    }
-                }else print("FAN ID Error.");
+            if(input[3] == 0x20){
+                if(IsNum(input[4]) && input[5] == 0x20 && IsNum(input[6])){ //<10
+                    if(input[4] > '0'){
+                        if(IsNum(input[8])){
+                            FAN[CharToDec(input[4]) - 1] = (CharToDec(input[6]) * 10 + CharToDec(input[7])) * 10 + CharToDec(input[8]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            print(" speed: ");
+                            SendSerialData(input[6]);
+                            SendSerialData(input[7]);
+                            SendSerialData(input[8]);
+                        }else if(IsNum(input[7])){
+                            FAN[CharToDec(input[4]) - 1] = CharToDec(input[6]) * 10 + CharToDec(input[7]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            print(" speed: ");
+                            SendSerialData(input[6]);
+                            SendSerialData(input[7]);
+                        }else{
+                            FAN[CharToDec(input[4]) - 1] = CharToDec(input[6]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            print(" speed: ");
+                            SendSerialData(input[6]);
+                        }
+                    }else print("FAN ID Error.");
+                }else if(IsNum(input[4]) && IsNum(input[5]) && input[6] == 0x20 && IsNum(input[7])){ //>10
+                    if(CharToDec(input[4]) * 10 + CharToDec(input[5]) > 0 && CharToDec(input[4]) * 10 + CharToDec(input[5]) <= 12){
+                        if(IsNum(input[9])){
+                            FAN[CharToDec(input[4]) * 10 + CharToDec(input[5]) - 1] = (CharToDec(input[7]) * 10 + CharToDec(input[8])) * 10 + CharToDec(input[9]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            SendSerialData(input[5]);
+                            print(" speed: ");
+                            SendSerialData(input[7]);
+                            SendSerialData(input[8]);
+                            SendSerialData(input[9]);
+                        }else if(IsNum(input[8])){
+                            FAN[CharToDec(input[4]) * 10 + CharToDec(input[5]) - 1] = CharToDec(input[7]) * 10 + CharToDec(input[8]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            SendSerialData(input[5]);
+                            print(" speed: ");
+                            SendSerialData(input[7]);
+                            SendSerialData(input[8]);
+                        }else{
+                            FAN[CharToDec(input[4]) * 10 + CharToDec(input[5]) - 1] = CharToDec(input[7]);
+                            print("Set FAN ");
+                            SendSerialData(input[4]);
+                            SendSerialData(input[5]);
+                            print(" speed: ");
+                            SendSerialData(input[7]);
+                        }
+                    }else print("FAN ID Error.");
+                }else print("Error.");
             }
         }else{ // Unknow Command
             print("Unknow command:");
@@ -410,7 +415,7 @@ void Enter(){
         }
         print("\r\n");
         print("root@C51:~$ ");
-    }else print("root@C51:~$ ");;
+    }else print("root@C51:~$ ");
     for(count = 0;count < 15;count++) input[count] = 0;
     inputBit = 0;
     currorBit = 0;
@@ -425,7 +430,7 @@ void SerialInterrupt() interrupt 4{
             Enter();
         }else if(receiveData == 0x1B){ //0x1B
             ESC = 1;
-        }else if(receiveData == 0x08){ //backspace
+        }else if(receiveData == 0x08 || receiveData == 0x7F){ //backspace
             if(currorBit > 0) Backspace();
         }else{
             if(inputBit <= 15 && currorBit == inputBit) Input(receiveData); //Input
